@@ -1,0 +1,15 @@
+name: CoverMeInTnt
+version: 1.0.0
+main: com.midrago.CoverMeInTntPlugin
+api-version: '1.21.10'
+author: Midrago
+description: TNT-armor
+
+commands:
+  covermeintnt:
+    usage: /covermeintnt reload|give <player> <helmet|chestplate|leggings|boots|all> [amount]
+    permission: covermeintnt.admin
+
+permissions:
+  covermeintnt.admin:
+    default: op

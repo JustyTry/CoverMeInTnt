@@ -1,0 +1,246 @@
+# ============================================================
+# CoverMeInTnt - Configuration
+# ============================================================
+# This plugin adds craftable TNT armor (red leather armor with a white trim)
+# and an "ignite -> prime -> explode" mechanic.
+#
+# Notes:
+# - Most text fields support legacy color codes with '&' (e.g. "&cRed"). [web:150]
+# - config.yml is YAML: indentation matters. Two spaces is recommended. [web:144]
+#
+# Tip for server owners:
+# - If you edit this file while the server is running, use /covermeintnt reload
+#   (or restart) to apply changes, depending on what you changed.
+# ============================================================
+
+# ------------------------------------------------------------
+# Ignite detection (what counts as "the player got ignited")
+# ------------------------------------------------------------
+ignite:
+  # Minimum number of TNT armor pieces required to start the priming sequence.
+  # 1 = any single piece (helmet OR chestplate OR leggings OR boots)
+  # 4 = full set only
+  require-min-pieces: 1
+
+  # If true, the player must still be wearing at least require-min-pieces
+  # when the timer finishes, otherwise the explosion is cancelled.
+  require-still-wearing: true
+
+  # Cooldown after successfully starting priming.
+  # 0 = no cooldown.
+  cooldown-ticks: 0
+
+  triggers:
+    # Trigger priming when Bukkit fires EntityCombustEvent for the player.
+    # This covers many "ignition" cases.
+    combust-event: true
+
+    # Trigger priming on certain damage causes.
+    # Useful if you want "standing in lava" / "fire tick" to always prime.
+    # Valid values are EntityDamageEvent.DamageCause enum names.
+    damage-causes:
+      - FIRE
+      - FIRE_TICK
+      - LAVA
+      - HOT_FLOOR
+
+    # Allow igniting a TNT-armor player by right-clicking them with Flint & Steel.
+    # This is a custom mechanic implemented via PlayerInteractEntityEvent.
+    flint-and-steel:
+      enabled: true
+
+      # Vanilla-style burn time to apply to the target (in ticks).
+      # 20 ticks = 1 second.
+      # 0 = do not set fire ticks (still primes, but doesn't visually set them on fire).
+      set-fire-ticks: 60
+
+      # If true, Flint & Steel will lose 1 durability per use.
+      consume-durability: true
+
+# ------------------------------------------------------------
+# Priming phase (timer, particles, sound)
+# ------------------------------------------------------------
+prime:
+  # Base delay before explosion, in ticks (20 ticks = 1 second).
+  # Real delay can be reduced by scaling.delay-reduce-ticks-per-extra-piece.
+  delay-ticks: 40
+
+  particle:
+    # During priming, the plugin spawns ITEM particles using a TNT item.
+    # This is relatively lightweight and looks like TNT sparks.
+    count: 10
+    spread: 0.35
+    y-offset: 1.0
+
+  sound:
+    # Plays once when priming starts.
+    enabled: true
+
+    # Sound key can be either:
+    # - enum style: ENTITY_TNT_PRIMED
+    # (The plugin tries to normalize "entity.tnt.primed" into "ENTITY_TNT_PRIMED".)
+    key: "ENTITY_TNT_PRIMED"
+    volume: 1.0
+    pitch: 1.0
+
+# ------------------------------------------------------------
+# Explosion behavior
+# ------------------------------------------------------------
+explosion:
+  # Base explosion radius.
+  # Real radius can be increased by scaling.radius-add-per-extra-piece.
+  radius: 4.0
+
+  # If false, the plugin will not modify blocks (purely entity damage/knockback + visuals).
+  # If true, blocks are broken in batches to reduce lag spikes.
+  breaks-blocks: false
+
+  knockback:
+    enabled: true
+    # Knockback multiplier (bigger = stronger).
+    strength: 1.15
+
+  # Used only when breaks-blocks: true
+  block-breaker:
+    # Safety setting: maximum blocks to process per tick.
+    # Lower values reduce lag but make block breaking slower over multiple ticks.
+    max-blocks-per-tick: 900
+
+    # If true, blocks drop items (like normal breaking).
+    # If false, blocks are simply set to air (faster, less item spam).
+    drop-items: false
+
+    # Blocks that should never be broken by the TNT armor explosion.
+    # Material names must match Bukkit/Spigot Material enum names.
+    blacklist:
+      - BEDROCK
+      - BARRIER
+      - END_PORTAL_FRAME
+      - END_PORTAL
+      - NETHER_PORTAL
+
+# ------------------------------------------------------------
+# Damage rules
+# ------------------------------------------------------------
+damage:
+  # If true:
+  # - The wearer ALSO takes damage (wearer-damage).
+  # - Explosion damage to others uses explosion-damage.
+  #
+  # If false (default):
+  # - The wearer takes NO damage from the explosion.
+  # - Explosion damage to others is calculated as: wearer_current_hp * 2
+  #
+  # In both cases, scaling.damage-mult-per-extra-piece applies.
+  damage-wearer: false
+
+  # Used ONLY when damage-wearer: true
+  wearer-damage: 10.0
+
+  # Used ONLY when damage-wearer: true
+  explosion-damage: 30.0
+
+# ------------------------------------------------------------
+# Scaling (effect strength by number of pieces worn)
+# ------------------------------------------------------------
+scaling:
+  # Extra radius added for each additional piece beyond the first.
+  # Example: base=4.0 and add=0.75
+  # 1 piece -> 4.00
+  # 2 pieces -> 4.75
+  # 3 pieces -> 5.50
+  # 4 pieces -> 6.25
+  radius-add-per-extra-piece: 0.75
+
+  # Delay reduction (ticks) for each additional piece beyond the first.
+  # Example: baseDelay=40, reduce=5
+  # 1 piece -> 40
+  # 2 pieces -> 35
+  # 3 pieces -> 30
+  # 4 pieces -> 25
+  delay-reduce-ticks-per-extra-piece: 5
+
+  # Lower bound to prevent instant explosions.
+  min-delay-ticks: 10
+
+  # Damage multiplier per extra piece beyond the first.
+  # Example: 0.25
+  # 1 piece -> x1.00
+  # 2 pieces -> x1.25
+  # 3 pieces -> x1.50
+  # 4 pieces -> x1.75
+  damage-mult-per-extra-piece: 0.25
+
+  # Particle count multiplier per extra piece beyond the first (visual intensity).
+  particles-mult-per-extra-piece: 0.20
+
+# ------------------------------------------------------------
+# TNT armor item settings (names, lore, attributes, appearance)
+# ------------------------------------------------------------
+armor:
+  # Cosmetic trim (white pattern on the red leather armor).
+  # Uses the vanilla armor trim system (1.20+).
+  trim:
+    enabled: true
+
+    # You can specify with or without namespace:
+    # - "minecraft:quartz" / "minecraft:sentry"
+    # - "quartz" / "sentry"
+    material: "minecraft:quartz"
+    pattern: "minecraft:sentry"
+
+  # Item flags visibility.
+  # You can keep it clean by hiding attributes/unbreakable/dye.
+  flags:
+    hide-attributes: true
+    hide-unbreakable: true
+    hide-dye: true
+
+  helmet:
+    name: "&cTNT Helmet"
+    unbreakable: true
+    custom-model-data: 0
+    color: "#ff0000"
+    lore:
+      - "&7Ignite the wearer..."
+      - "&7...and start the countdown."
+    attributes:
+      armor: 2.0
+      toughness: 0.0
+      knockback-resistance: 0.0
+
+  chestplate:
+    name: "&cTNT Chestplate"
+    unbreakable: true
+    custom-model-data: 0
+    color: "#ff0000"
+    lore:
+      - "&7Handle with care."
+    attributes:
+      armor: 6.0
+      toughness: 0.0
+      knockback-resistance: 0.0
+
+  leggings:
+    name: "&cTNT Leggings"
+    unbreakable: true
+    custom-model-data: 0
+    color: "#ff0000"
+    lore:
+      - "&7Keep your distance."
+    attributes:
+      armor: 5.0
+      toughness: 0.0
+      knockback-resistance: 0.0
+
+  boots:
+    name: "&cTNT Boots"
+    unbreakable: true
+    custom-model-data: 0
+    color: "#ff0000"
+    lore:
+      - "&7Sparks are a bad sign."
+    attributes:
+      armor: 2.0
+      toughness: 0.0
+      knockback-resistance: 0.0
